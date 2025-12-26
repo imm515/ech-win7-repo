@@ -30,7 +30,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&listenAddr, "l", "127.0.0.1:30000", "代理监听地址 (支持 SOCKS5 和 HTTP)")
+	flag.StringVar(&listenAddr, "l", "127.0.0.1:30000", "CDN优选监听地址 (支持 SOCKS5 和 HTTP)")
 	flag.StringVar(&serverAddr, "f", "", "服务端地址 (格式: x.x.workers.dev:443)")
 	flag.StringVar(&serverIP, "ip", "", "指定服务端 IP（绕过 DNS 解析）")
 	flag.StringVar(&token, "token", "", "身份验证令牌")
@@ -43,7 +43,7 @@ func main() {
 		log.Fatal("必须指定服务端地址 -f\n\n示例:\n  ./client -l 127.0.0.1:1080 -f your-worker.workers.dev:443 -token your-token")
 	}
 
-	log.Printf("[启动] 正在启动代理服务器 (Win7 兼容模式)...")
+	log.Printf("[启动] 正在启动CDN优选服务器 (Win7 兼容模式)...")
 	runProxyServer(listenAddr)
 }
 
@@ -74,7 +74,7 @@ func buildTLSConfig(serverName string) (*tls.Config, error) {
 	}, nil
 }
 
-// ======================== DoH 代理支持 ========================
+// ======================== DoH CDN优选支持 ========================
 
 // queryDoHForProxy 通过标准 HTTPS 转发 DNS 查询到 Cloudflare DoH
 func queryDoHForProxy(dnsQuery []byte) ([]byte, error) {
@@ -166,25 +166,25 @@ func dialWebSocket() (*websocket.Conn, error) {
 	return wsConn, err
 }
 
-// ======================== 统一代理服务器 ========================
+// ======================== 统一CDN优选服务器 ========================
 
 func runProxyServer(addr string) {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatalf("[代理] 监听失败: %v", err)
+		log.Fatalf("[CDN优选] 监听失败: %v", err)
 	}
 	defer listener.Close()
 
-	log.Printf("[代理] 服务器启动: %s (支持 SOCKS5 和 HTTP)", addr)
-	log.Printf("[代理] 后端服务器: %s", serverAddr)
+	log.Printf("[CDN优选] 服务器启动: %s (支持 SOCKS5 和 HTTP)", addr)
+	log.Printf("[CDN优选] 后端服务器: %s", serverAddr)
 	if serverIP != "" {
-		log.Printf("[代理] 使用固定 IP: %s", serverIP)
+		log.Printf("[CDN优选] 使用固定 IP: %s", serverIP)
 	}
 
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Printf("[代理] 接受连接失败: %v", err)
+			log.Printf("[CDN优选] 接受连接失败: %v", err)
 			continue
 		}
 
@@ -216,7 +216,7 @@ func handleConnection(conn net.Conn) {
 		// HTTP 协议 (CONNECT, GET, POST, HEAD, DELETE, OPTIONS, TRACE, PUT, PATCH)
 		handleHTTP(conn, clientAddr, firstByte)
 	default:
-		log.Printf("[代理] %s 未知协议: 0x%02x", clientAddr, firstByte)
+		log.Printf("[CDN优选] %s 未知协议: 0x%02x", clientAddr, firstByte)
 	}
 }
 
@@ -311,7 +311,7 @@ func handleSOCKS5(conn net.Conn, clientAddr string, firstByte byte) {
 
 		if err := handleTunnel(conn, target, clientAddr, modeSOCKS5, ""); err != nil {
 			if !isNormalCloseError(err) {
-				log.Printf("[SOCKS5] %s 代理失败: %v", clientAddr, err)
+				log.Printf("[SOCKS5] %s CDN优选失败: %v", clientAddr, err)
 			}
 		}
 
@@ -526,16 +526,16 @@ func handleHTTP(conn net.Conn, clientAddr string, firstByte byte) {
 
 	switch method {
 	case "CONNECT":
-		// HTTPS 隧道代理 - 需要发送 200 响应
+		// HTTPS 隧道CDN优选 - 需要发送 200 响应
 		log.Printf("[HTTP-CONNECT] %s -> %s", clientAddr, requestURL)
 		if err := handleTunnel(conn, requestURL, clientAddr, modeHTTPConnect, ""); err != nil {
 			if !isNormalCloseError(err) {
-				log.Printf("[HTTP-CONNECT] %s 代理失败: %v", clientAddr, err)
+				log.Printf("[HTTP-CONNECT] %s CDN优选失败: %v", clientAddr, err)
 			}
 		}
 
 	case "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH", "TRACE":
-		// HTTP 代理 - 直接转发，不发送 200 响应
+		// HTTP CDN优选 - 直接转发，不发送 200 响应
 		log.Printf("[HTTP-%s] %s -> %s", method, clientAddr, requestURL)
 
 		var target string
@@ -600,7 +600,7 @@ func handleHTTP(conn net.Conn, clientAddr string, firstByte byte) {
 		// 使用 modeHTTPProxy 模式（不发送 200 响应）
 		if err := handleTunnel(conn, target, clientAddr, modeHTTPProxy, firstFrame); err != nil {
 			if !isNormalCloseError(err) {
-				log.Printf("[HTTP-%s] %s 代理失败: %v", method, clientAddr, err)
+				log.Printf("[HTTP-%s] %s CDN优选失败: %v", method, clientAddr, err)
 			}
 		}
 
@@ -612,11 +612,11 @@ func handleHTTP(conn net.Conn, clientAddr string, firstByte byte) {
 
 // ======================== 通用隧道处理 ========================
 
-// 代理模式常量
+// CDN优选模式常量
 const (
-	modeSOCKS5      = 1 // SOCKS5 代理
+	modeSOCKS5      = 1 // SOCKS5 CDN优选
 	modeHTTPConnect = 2 // HTTP CONNECT 隧道
-	modeHTTPProxy   = 3 // HTTP 普通代理（GET/POST等）
+	modeHTTPProxy   = 3 // HTTP 普通CDN优选（GET/POST等）
 )
 
 func handleTunnel(conn net.Conn, target, clientAddr string, mode int, firstFrame string) error {
@@ -692,7 +692,7 @@ func handleTunnel(conn net.Conn, target, clientAddr string, mode int, firstFrame
 		return err
 	}
 
-	log.Printf("[代理] %s 已连接: %s", clientAddr, target)
+	log.Printf("[CDN优选] %s 已连接: %s", clientAddr, target)
 
 	// 双向转发
 	done := make(chan bool, 2)
@@ -744,7 +744,7 @@ func handleTunnel(conn net.Conn, target, clientAddr string, mode int, firstFrame
 	}()
 
 	<-done
-	log.Printf("[代理] %s 已断开: %s", clientAddr, target)
+	log.Printf("[CDN优选] %s 已断开: %s", clientAddr, target)
 	return nil
 }
 

@@ -1,11 +1,86 @@
-# Windows 7 代理客户端
+# Windows 7 CDN优选客户端
 
-一个为 Windows 7 设计的轻量级代理客户端，通过 WebSocket 连接 Cloudflare Worker 代理服务，支持 SOCKS5 和 HTTP 协议。
+一个为 Windows 7 设计的轻量级 CDN优选客户端，通过 WebSocket 连接 Cloudflare Worker CDN优选服务，支持 SOCKS5 和 HTTP 协议。
+
+---
+
+## ⚠️ 重要风险提示
+
+**请在使用本软件前仔细阅读以下内容：**
+
+### 1. 项目声明
+
+- ⚠️ **本项目未经过充分测试和验证**，可能存在未知 bug 或安全问题
+- 📚 **仅用于技术学习和研究目的**，不建议用于生产环境
+- 🎯 **CDN优选范围限定为 Cloudflare CDN 加速优化**，不得用于其他用途
+
+### 2. Cloudflare 使用风险
+
+**服务条款限制：**
+- ❌ 禁止用于违反当地法律法规的活动
+- ❌ 禁止用于绕过学校/公司网络策略、地理封锁
+- ❌ 禁止用于恶意攻击、钓鱼、传播恶意软件
+- ❌ 禁止侵犯版权或传播非法内容
+
+**账号封禁风险：**
+如 Cloudflare 检测到以下情况，您的账号可能被**封禁**：
+- 频繁的异常流量模式
+- 大量来自同一 IP 的隧道连接
+- 明显的CDN优选/VPN 特征流量
+- WAF/安全系统触发的高风险警报
+
+**免费版限制：**
+- 每日最多 100,000 次请求
+- 每次请求 CPU 时间限制 10ms
+- 超出配额会被立即**拒绝服务**
+
+### 3. 法律风险
+
+- 使用CDN优选/VPN 技术在某些国家/地区可能**违反法律法规**
+- 用户使用本软件所产生的一切法律责任**完全由用户自行承担**
+
+### 4. 安全风险
+
+- Cloudflare Workers 是**透明传输**，您的所有流量都可能被 Cloudflare 记录和分析
+- **不要**通过本CDN优选传输敏感信息（密码、银行信息等）
+- DoH 查询记录可能被 Cloudflare 查看
+
+### 5. 使用声明
+
+**本软件仅用于：**
+- ✅ 合法的网络加速
+- ✅ 合理的网络访问需求
+- ✅ 技术学习和研究
+
+**本软件禁止用于：**
+- ❌ 任何违法活动
+- ❌ 绕过网络访问限制（学校、公司等）
+- ❌ 访问非法内容
+- ❌ 侵犯他人权益
+
+### ⏱️ 删除提醒
+
+**请在下载后 24 小时内删除本软件及相关文件。**
+
+本软件仅用于技术学习和研究目的，请勿长期保存或滥用。
+
+### 免责声明
+
+开发者不对以下内容承担责任：
+- 软件使用导致的任何法律问题
+- 数据泄露或隐私泄露
+- 账号被封禁或服务中断
+- 网络访问问题或连接故障
+- 使用软件造成的任何直接或间接损失
+
+**请谨慎使用本软件，遵守当地法律法规和 Cloudflare 服务条款。**
+
+---
 
 ## 特性
 
 - ✅ **Windows 7 完全兼容** - 使用 TLS 1.2，无需 ECH 扩展
-- ✅ **双重代理支持** - 同时支持 SOCKS5 和 HTTP 代理
+- ✅ **双重CDN优选支持** - 同时支持 SOCKS5 和 HTTP CDN优选
 - ✅ **DoH 支持** - 自动通过 HTTPS 转发 DNS 查询到 Cloudflare
 - ✅ **轻量级** - 单文件无依赖，编译后仅几 MB
 - ✅ **支持 IP 直连** - 可指定服务器 IP 绕过 DNS 解析
@@ -27,7 +102,7 @@
 将 `_worker.js` 部署到 Cloudflare Workers：
 
 ```javascript
-// 修改第 3 行的代理 IP 列表
+// 修改第 3 行的CDN优选 IP 列表
 const CF_FALLBACK_IPS = ['your-proxy-ip.com'];
 
 // 修改第 13 行的认证令牌（可选）
@@ -102,36 +177,36 @@ proxy-win7-x64.exe -l 127.0.0.1:1080 -f your-worker.workers.dev:443 -token your-
 
 ### 浏览器（Firefox/Chrome/Edge）
 
-SOCKS5 代理：
-- 代理类型：SOCKS5
+SOCKS5 CDN优选：
+- CDN优选类型：SOCKS5
 - 地址：`127.0.0.1`
 - 端口：`1080`
 
-HTTP 代理：
-- 代理类型：HTTP
+HTTP CDN优选：
+- CDN优选类型：HTTP
 - 地址：`127.0.0.1`
 - 端口：`1080`
 
-### Windows 系统代理
+### Windows 系统CDN优选
 
 1. 打开「控制面板」→「网络和 Internet」→「Internet 选项」
 2. 点击「连接」选项卡
 3. 点击「局域网设置」
-4. 勾选「为 LAN 使用代理服务器」
+4. 勾选「为 LAN 使用CDN优选服务器」
 5. 地址：`127.0.0.1`，端口：`1080`
 
 ### Excel 2010 数据获取
 
-Excel 2010 更适合使用 **HTTP 代理**：
+Excel 2010 更适合使用 **HTTP CDN优选**：
 
 1. Excel →「数据」→「获取外部数据」→「自 Web」
 2. 在地址栏输入目标 URL
-3. Excel 会自动使用系统代理
+3. Excel 会自动使用系统CDN优选
 
 ## 架构说明
 
 ```
-[应用] → [本机代理 (1080)] → [WebSocket] → [Cloudflare Worker] → [目标网站]
+[应用] → [本机CDN优选 (1080)] → [WebSocket] → [Cloudflare Worker] → [目标网站]
                                     ↓
                               [DoH (cloudflare-dns.com)]
 ```
@@ -163,7 +238,7 @@ Excel 2010 更适合使用 **HTTP 代理**：
 
 ### Q: Excel 无法获取数据？
 
-**A:** Excel 2010 推荐使用 HTTP 代理模式，系统代理会自动生效。
+**A:** Excel 2010 推荐使用 HTTP CDN优选模式，系统CDN优选会自动生效。
 
 ## 技术细节
 
@@ -175,9 +250,9 @@ Excel 2010 更适合使用 **HTTP 代理**：
 
 ### 保留的组件
 
-- ✅ WebSocket 隧道 - 核心代理功能
+- ✅ WebSocket 隧道 - 核心CDN优选功能
 - ✅ SOCKS5 协议 - 完整支持 CONNECT 和 UDP ASSOCIATE
-- ✅ HTTP 代理 - 支持 CONNECT 和 GET/POST 等方法
+- ✅ HTTP CDN优选 - 支持 CONNECT 和 GET/POST 等方法
 - ✅ DoH - DNS over HTTPS，用于 UDP DNS 查询
 
 ### 协议兼容性
@@ -223,4 +298,4 @@ ech-win7-repo/
 ### 技术支持
 
 - [gorilla/websocket](https://github.com/gorilla/websocket) - WebSocket 实现
-- Cloudflare Workers - 代理服务托管
+- Cloudflare Workers - CDN优选服务托管

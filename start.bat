@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 >nul
-title Windows 7 代理客户端
+title Windows 7 CDN优选客户端
 color 0A
 
 echo.
 echo ================================
-echo    Windows 7 代理客户端
+echo    Windows 7 CDN优选客户端
 echo ================================
 echo.
 
@@ -59,7 +59,7 @@ if "%SERVER_ADDR%"=="your-worker.workers.dev:443" (
     pause
 )
 
-echo [启动] 正在启动代理服务...
+echo [启动] 正在启动CDN优选服务...
 echo [提示] 按 Ctrl+C 停止服务
 echo.
 echo ================================
