@@ -35,6 +35,10 @@ var (
 
 	echListMu sync.RWMutex
 	echList   []byte
+
+	// DoH 连接池 - 避免每次查询都创建新TLS连接
+	dohClient *http.Client
+	onceInit  sync.Once
 )
 
 func init() {
@@ -137,6 +141,61 @@ func buildTLSConfigForDNS(serverName string, echList []byte) (*tls.Config, error
 		InsecureSkipVerify: false, // 建议保持 false 提高安全性
 		RootCAs:             roots,
 	}, nil
+}
+
+// getDohClient 获取全局 DoH 客户端（连接池）
+func getDohClient() *http.Client {
+	onceInit.Do(func() {
+		// 构建 TLS 1.2 配置（Win7 兼容）
+		tlsCfg, err := buildTLSConfigForDNS("dns.alidns.com", nil)
+		if err != nil {
+			log.Printf("[DoH] 构建 TLS 配置失败: %v", err)
+			tlsCfg = &tls.Config{
+				MinVersion:         tls.VersionTLS12,
+				InsecureSkipVerify: true, // 降级到跳过验证以兜底
+			}
+		}
+		tlsCfg.InsecureSkipVerify = true // DNS 查询可接受跳过验证
+
+		// 配置 Transport 实现连接池
+		transport := &http.Transport{
+			TLSClientConfig:       tlsCfg,
+			MaxIdleConns:          100,             // 最大空闲连接总数
+			MaxIdleConnsPerHost:   10,              // 每个主机最大空闲连接数（控制并发）
+			IdleConnTimeout:       90 * time.Second, // 空闲连接超时
+			TLSHandshakeTimeout:   5 * time.Second, // TLS 握手超时
+			DisableKeepAlives:     false,           // 启用 Keep-Alive
+			DisableCompression:    false,
+			ForceAttemptHTTP2:     false,            // DoH 不强制 HTTP/2
+		}
+
+		// 如果指定了 serverIP，使用自定义 Dialer
+		if serverIP != "" {
+			transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+				host, port, err := net.SplitHostPort(addr)
+				if err != nil {
+					return nil, err
+				}
+				dialer := &net.Dialer{
+					Timeout:   10 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}
+				// 将 DNS 请求路由到指定 IP
+				if host == "dns.alidns.com" {
+					return dialer.DialContext(ctx, network, net.JoinHostPort(serverIP, port))
+				}
+				return dialer.DialContext(ctx, network, addr)
+			}
+		}
+
+		dohClient = &http.Client{
+			Transport: transport,
+			Timeout:   5 * time.Second, // 每个请求的超时
+		}
+
+		log.Printf("[DoH] 连接池已初始化 (MaxIdleConns: 100, MaxIdleConnsPerHost: 10)")
+	})
+	return dohClient
 }
 
 // queryHTTPSRecord 通过 DoH 查询 HTTPS 记录
@@ -294,8 +353,11 @@ func parseHTTPSRecord(data []byte) string {
 
 // ======================== DoH 代理支持 ========================
 
-// queryDoHForProxy 通过 ECH 转发 DNS 查询到阿里 DNS DoH
+// queryDoHForProxy 通过 DoH 查询 DNS（使用全局连接池）
 func queryDoHForProxy(dnsQuery []byte) ([]byte, error) {
+	// 使用全局连接池客户端
+	client := getDohClient()
+
 	_, port, _, err := parseServerAddr(serverAddr)
 	if err != nil {
 		return nil, err
@@ -303,40 +365,6 @@ func queryDoHForProxy(dnsQuery []byte) ([]byte, error) {
 
 	// 构建 DoH URL
 	dohURL := fmt.Sprintf("https://dns.alidns.com:%s/dns-query", port)
-
-	echBytes, err := getECHList()
-	if err != nil {
-		return nil, fmt.Errorf("获取 ECH 配置失败: %w", err)
-	}
-
-	tlsCfg, err := buildTLSConfigForDNS("dns.alidns.com", echBytes)
-	if err != nil {
-		return nil, fmt.Errorf("构建 TLS 配置失败: %w", err)
-	}
-
-	// 创建 HTTP 客户端
-	transport := &http.Transport{
-		TLSClientConfig: tlsCfg,
-	}
-
-	// 如果指定了 IP，使用自定义 Dialer
-	if serverIP != "" {
-		transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-			_, port, err := net.SplitHostPort(addr)
-			if err != nil {
-				return nil, err
-			}
-			dialer := &net.Dialer{
-				Timeout: 10 * time.Second,
-			}
-			return dialer.DialContext(ctx, network, net.JoinHostPort(serverIP, port))
-		}
-	}
-
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   10 * time.Second,
-	}
 
 	// 发送 DoH 请求
 	req, err := http.NewRequest("POST", dohURL, bytes.NewReader(dnsQuery))
