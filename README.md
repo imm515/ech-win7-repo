@@ -117,7 +117,7 @@ const token = 'your-token-here';
 
 ```bash
 git add .
-git commit -m "Initial commit"
+git commit -m "Update to v1.0"
 git push
 ```
 
@@ -130,6 +130,15 @@ git push
 5. 选择分支，点击绿色的 **"Run workflow"** 开始编译
 
 编译完成后在 Actions 页面下载 `proxy-win7-x64.exe`。
+
+**方式三：推送标签触发 Release（推荐）**
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+推送标签后会自动创建 GitHub Release，在 Releases 页面可下载编译好的 exe 文件。
 
 ### 3. 运行客户端
 
@@ -172,6 +181,7 @@ proxy-win7-x64.exe -l 127.0.0.1:1080 -f your-worker.workers.dev:443 -token your-
 | `-f` | 服务器地址 | `worker.workers.dev:443` | **是** |
 | `-ip` | 指定服务器 IP | `1.2.3.4` | 否 |
 | `-token` | 认证令牌 | `secret-token` | 否 |
+| `-dns` | DoH 服务器 | `dns.alidns.com/dns-query` | 否（默认阿里DNS） |
 
 ## 配置应用程序
 
@@ -205,14 +215,23 @@ Excel 2010 更适合使用 **HTTP CDN优选**：
 
 ## 架构说明
 
+### 流量分流设计
+
+本客户端采用流量分流架构，区分本机和手机端流量：
+
 ```
-[应用] → [本机CDN优选 (1080)] → [WebSocket] → [Cloudflare Worker] → [目标网站]
-                                    ↓
-                              [DoH (cloudflare-dns.com)]
+[本机应用] → [本机CDN优选 (1080)] → [WebSocket] → [Cloudflare Worker] → [目标网站]
+                                         ↓ (DoH: dns.alidns.com, TLS 1.2)
+[手机端UDP DNS请求] → [端口53拦截] → [提示: 使用本地DNS解析]
 ```
 
-- SOCKS5 UDP 请求（DNS）通过 DoH 转发到 Cloudflare
-- 其他 TCP 流量通过 WebSocket 隧道转发
+### 流量处理逻辑
+
+| 流量类型 | 目标端口 | 处理方式 | TLS版本 |
+|---------|---------|---------|---------|
+| 本机TCP流量 | 任意 | WebSocket隧道转发 | TLS 1.3 (高性能) |
+| 本机DoH查询 | 80/443 | 阿里DNS DoH | TLS 1.2 (Win7兼容) |
+| 手机端UDP DNS | 53 | 拦截并提示 | N/A |
 
 ## 常见问题
 
@@ -248,24 +267,39 @@ Excel 2010 更适合使用 **HTTP CDN优选**：
 
 ## 技术细节
 
-### 禁用的功能（原版本）
+### v1.0 流量分流特性
 
-- 🔇 **ECH (Encrypted Client Hello)** - 已注释掉 `prepareECH()` 调用，禁用 ECH 扩展
-- 🔇 **ECH 相关 TLS 配置** - 移除了 `EncryptedClientHelloConfigList` 和 `EncryptedClientHelloRejectionVerify` 字段
-- ℹ️ **TLS 版本** - 使用 TLS 1.3（Win7 可能需要系统更新或修改为 TLS 1.2）
+- 🎯 **DNS请求拦截** - 拦截UDP端口53的DNS请求，提示手机端使用本地DNS解析
+- 🔗 **双TLS版本** - DoH使用TLS 1.2(兼容Win7), 主隧道使用TLS 1.3(高性能)
+- 📝 **代码精简** - 移除冗余DNS二进制转换代码，精简约90行
+- 🧹 **清理优化** - 删除所有ECH相关代码和未使用的import
 
 ### 保留的组件
 
-- ✅ **WebSocket 隧道** - 核心CDN优选功能
-- ✅ **SOCKS5 协议** - 完整支持 CONNECT 和 UDP ASSOCIATE
+- ✅ **WebSocket 隧道** - 核心CDN优选功能，支持TLS 1.3
+- ✅ **SOCKS5 协议** - 支持 CONNECT 和 UDP ASSOCIATE(拦截DNS)
 - ✅ **HTTP CDN优选** - 支持 CONNECT 和 GET/POST 等方法
-- ✅ **DoH** - DNS over HTTPS，用于 UDP DNS 查询
+- ✅ **DoH连接池** - 阿里DNS DoH查询，支持TLS 1.2，连接池优化
 
 ### 代码来源
 
-基于 `ech2/原版客户端go源码` 修改，主要改动：
-1. 注释掉 `main()` 函数中的 `prepareECH()` 调用（第 57 行）
-2. 移除 `buildTLSConfigWithECH()` 中的 ECH 相关字段
+基于 `ech2/原版客户端go源码` 经过6个版本迭代完成v1.0流量分流稳定版：
+
+**v0.1-v0.5阶段**:
+1. 初始版本生成，强制TLS 1.2
+2. 禁用ECH扩展
+3. DNS TLS精准降级(DoH TLS 1.2, 主隧道TLS 1.3)
+4. DoH服务器更换为阿里DNS
+5. 实现HTTP Client连接池优化
+
+**v1.0 流量分流稳定版**:
+1. 完全删除ECH相关代码（prepareECH、refreshECH、getECHList等函数）
+2. 删除冗余的DNS二进制转换代码（handleDNSQuery、buildDNSQuery、parseDNSResponse等）
+3. 实现DNS请求拦截，拦截端口53并提示使用本地DNS解析
+4. 清理未使用的import（encoding/binary、net/url、encoding/base64）
+5. 删除未使用的变量（addr、udpData、headerLen）
+6. DoH使用TLS 1.2，主隧道使用TLS 1.3
+7. 实现全局DoH连接池，支持连接复用
 
 ### 协议兼容性
 
@@ -280,17 +314,24 @@ Excel 2010 更适合使用 **HTTP CDN优选**：
 
 ```
 ech-win7-repo/
-├── main.go                    # Go 客户端源码（禁用 ECH 版本）
+├── main.go                    # Go 客户端源码（v1.0 流量分流稳定版）
 ├── README.md                 # 本文档
-├── ech2/                     # 原始代码目录
+├── go.mod                   # Go 模块依赖
+├── go.sum                   # 依赖版本锁定
+├── ech2/                     # 原始代码目录（参考）
 │   ├── 甬哥的js            # Cloudflare Worker 脚本参考
 │   ├── 甬哥的启动参数，可以关闭ECH  # 启动参数参考
 │   ├── 原版客户端go源码      # 原始客户端代码
 │   ├── 原版js              # 原版 JS 脚本参考
 │   └── g2                    # 修改建议文档
-└── .github/
-    └── workflows/
-        └── main.yml          # GitHub Actions 自动编译
+└── .codebuddy/
+    └── plans/               # 开发计划文档（带序号）
+        ├── 01_ech2-win7-client-gen_fe599c3a.md
+        ├── 02_ech2-win7-no-ech_b352c5c8.md
+        ├── 03_tls-dns-precision-downgrade_31f6003b.md
+        ├── 04_修改_DoH_服务器为阿里_DNS_6aae21af.md
+        ├── 05_优化UDP_DNS代理连接池_53174eda.md
+        └── 06_go-client-dns-intercept-plan_fdb70445.md
 ```
 
 ## 许可证

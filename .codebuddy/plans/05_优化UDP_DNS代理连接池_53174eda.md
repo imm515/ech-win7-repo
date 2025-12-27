@@ -1,3 +1,5 @@
+# [05] 优化UDP_DNS代理连接池: 连接池优化
+
 ## 产品概述
 
 为UDP DNS代理服务实现全局HTTP Client连接池优化，解决Windows 7环境下频繁创建TLS连接导致的socket耗尽和CPU过载问题。
@@ -115,7 +117,7 @@ func (p *ConnectionPool) GetStats() *PoolStats
 
 - **解决方案**: 实现连接池复用TCP连接，减少新建连接数量
 - **关键配置**: MaxIdleConnsPerHost=10, MaxIdleConns=100
-- **实现步骤**: 
+- **实现步骤**:
 
 1. 创建全局http.Transport实例
 2. 配置连接池参数

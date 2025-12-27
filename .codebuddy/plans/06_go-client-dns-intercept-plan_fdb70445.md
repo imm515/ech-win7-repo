@@ -1,6 +1,8 @@
+# [06] go-client-dns-intercept-plan: DNS请求拦截
+
 ## Product Overview
 
-将Go客户端改造成"一机两制"稳定版，实现手机端UDP/DNS请求拦截（端口53），同时保留本机DoH解析能力。删除冗余的DNS二进制转换代码，优化日志提示以提高兼容性。
+将Go客户端改造成流量分流稳定版，实现手机端UDP/DNS请求拦截（端口53），同时保留本机DoH解析能力。删除冗余的DNS二进制转换代码，优化日志提示以提高兼容性。
 
 ## Core Features
 
@@ -67,7 +69,7 @@ func handleUDPRelay(conn *net.UDPConn, targetAddr *net.UDPAddr) {
 
 // 删除的冗余函数列表:
 // - handleDNSQuery
-// - buildDNSQuery  
+// - buildDNSQuery
 // - parseDNSResponse
 // - parseHTTPSRecord
 ```

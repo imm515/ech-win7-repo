@@ -1,4 +1,6 @@
-## 产品概述
+# [01] ech2-win7-client-gen: Win7客户端生成
+
+## Product Overview
 
 在 `ech2` 文件夹内生成并配置 Win7 版本的代理客户端代码。该客户端需兼容 Windows 7 系统，默认关闭 ECH (Encrypted Client Hello) 功能，强制使用 TLS 1.2 协议，并完整支持甬哥 JS 的 ProxyIP 功能，确保流量代理的高可用性与兼容性。
 
@@ -96,15 +98,12 @@ func (w *JSWorker) GetProxyIP() (string, error) {
 ### 技术实施计划
 
 1. **问题**: 确保在 Windows 7 上 TLS 1.2 可用且 ECH 默认关闭。
-
 - **方案**: 在 `tls.Config` 中显式设置 `MinVersion: tls.VersionTLS12`，并在配置文件中设置 `EnableECH: false`。
 
 2. **问题**: 甬哥 JS 的兼容性。
-
 - **方案**: 直接复用现有 `_worker.js`，确保 Go 侧的 JS VM 接口与原 Win7 版本一致。
 
 3. **问题**: 构建系统适配 `ech2` 目录。
-
 - **方案**: 修改 `main.yml`，将工作路径指向 `ech2`，并指定对应的输出目录。
 
 ### 集成点

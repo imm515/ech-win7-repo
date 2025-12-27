@@ -1,3 +1,5 @@
+# [02] ech2-win7-no-ech: 禁用ECH扩展
+
 ## Product Overview
 
 在 ech2 文件夹内构建 Win7 版本客户端，通过注释掉 prepareECH() 函数调用来禁用 ECH (Encrypted Client Hello) 功能，同时保持标准 TLS 1.3/1.2 协议配置不变。其他代码逻辑保持原样，以确保客户端稳定性和兼容性。
