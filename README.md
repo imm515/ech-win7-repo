@@ -79,7 +79,7 @@
 
 ## 特性
 
-- ✅ **Windows 7 完全兼容** - 使用 TLS 1.2，无需 ECH 扩展
+- ✅ **Windows 7 兼容** - 使用 TLS 1.3（可能需要系统更新），已禁用 ECH 扩展
 - ✅ **双重CDN优选支持** - 同时支持 SOCKS5 和 HTTP CDN优选
 - ✅ **DoH 支持** - 自动通过 HTTPS 转发 DNS 查询到 Cloudflare
 - ✅ **轻量级** - 单文件无依赖，编译后仅几 MB
@@ -221,7 +221,13 @@ Excel 2010 更适合使用 **HTTP CDN优选**：
 **A:** 确保：
 1. 使用 Go 1.20.x 版本编译
 2. 目标系统安装了最新的根证书更新
-3. 系统启用了 TLS 1.2 支持
+3. 系统启用了 TLS 1.2/1.3 支持
+
+### Q: Win7 上 TLS 握手失败？
+
+**A:** 可能是 TLS 1.3 不兼容，解决方法：
+1. 安装 Windows 7 的 KB4474419 安全更新（启用 TLS 1.3）
+2. 或将 `main.go` 第 121 行的 `tls.VersionTLS13` 改为 `tls.VersionTLS12`
 
 ### Q: 连接失败？
 
@@ -242,18 +248,24 @@ Excel 2010 更适合使用 **HTTP CDN优选**：
 
 ## 技术细节
 
-### 移除的组件（原版本）
+### 禁用的功能（原版本）
 
-- ❌ ECH (Encrypted Client Hello) - Win7 不支持
-- ❌ TLS 1.3 强制要求 - 改为 TLS 1.2
-- ❌ HTTPS DNS 记录解析 - 不再需要
+- 🔇 **ECH (Encrypted Client Hello)** - 已注释掉 `prepareECH()` 调用，禁用 ECH 扩展
+- 🔇 **ECH 相关 TLS 配置** - 移除了 `EncryptedClientHelloConfigList` 和 `EncryptedClientHelloRejectionVerify` 字段
+- ℹ️ **TLS 版本** - 使用 TLS 1.3（Win7 可能需要系统更新或修改为 TLS 1.2）
 
 ### 保留的组件
 
-- ✅ WebSocket 隧道 - 核心CDN优选功能
-- ✅ SOCKS5 协议 - 完整支持 CONNECT 和 UDP ASSOCIATE
-- ✅ HTTP CDN优选 - 支持 CONNECT 和 GET/POST 等方法
-- ✅ DoH - DNS over HTTPS，用于 UDP DNS 查询
+- ✅ **WebSocket 隧道** - 核心CDN优选功能
+- ✅ **SOCKS5 协议** - 完整支持 CONNECT 和 UDP ASSOCIATE
+- ✅ **HTTP CDN优选** - 支持 CONNECT 和 GET/POST 等方法
+- ✅ **DoH** - DNS over HTTPS，用于 UDP DNS 查询
+
+### 代码来源
+
+基于 `ech2/原版客户端go源码` 修改，主要改动：
+1. 注释掉 `main()` 函数中的 `prepareECH()` 调用（第 57 行）
+2. 移除 `buildTLSConfigWithECH()` 中的 ECH 相关字段
 
 ### 协议兼容性
 
@@ -268,14 +280,16 @@ Excel 2010 更适合使用 **HTTP CDN优选**：
 
 ```
 ech-win7-repo/
-├── main.go              # Go 客户端源码
-├── _worker.js          # Cloudflare Worker 脚本
-├── start.bat           # Windows 启动脚本
-├── README.md           # 本文档
-├── g1                  # Gemini 建议文档（参考）
+├── main.go                    # Go 客户端源码（禁用 ECH 版本）
+├── _worker.js                # Cloudflare Worker 脚本
+├── start.bat                 # Windows 启动脚本
+├── README.md                 # 本文档
+├── ech2/                     # 原始代码目录
+│   ├── 原版客户端go源码      # 原始客户端代码（已禁用 ECH）
+│   └── g2                    # 修改建议文档
 └── .github/
     └── workflows/
-        └── main.yml    # GitHub Actions 自动编译
+        └── main.yml          # GitHub Actions 自动编译
 ```
 
 ## 许可证
@@ -291,9 +305,9 @@ ech-win7-repo/
 
 ### 参考与学习
 
-- **CM** - 服务支持
-- **YGkkk** - 取消ECH思路来自甬哥视频
-- [ech-](https://github.com/byJoey/ech-) - JS 代码参考
+- **甬哥** - 取消 ECH 思路来自甬哥视频，感谢分享和提供公益服务
+  - **GitHub**: [yonggekkk/Cloudflare-vless-trojan](https://github.com/yonggekkk/Cloudflare-vless-trojan)
+- **byJoey** - [ech-](https://github.com/byJoey/ech-) - 代码学习
 
 ### 技术支持
 
