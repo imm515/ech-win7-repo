@@ -79,9 +79,9 @@
 
 ## 特性
 
-- ✅ **Windows 7 兼容** - 使用 TLS 1.3（可能需要系统更新），已禁用 ECH 扩展
+- ✅ **Windows 7 兼容** - DoH使用TLS 1.2(兼容Win7), 主隧道使用TLS 1.3(高性能)
 - ✅ **双重CDN优选支持** - 同时支持 SOCKS5 和 HTTP CDN优选
-- ✅ **DoH 支持** - 自动通过 HTTPS 转发 DNS 查询到 Cloudflare
+- ✅ **DNS请求拦截** - 拦截手机端DNS请求，提示使用本地DNS解析
 - ✅ **轻量级** - 单文件无依赖，编译后仅几 MB
 - ✅ **支持 IP 直连** - 可指定服务器 IP 绕过 DNS 解析
 - ✅ **Token 认证** - 支持 WebSocket 子协议令牌验证
@@ -309,30 +309,6 @@ Excel 2010 更适合使用 **HTTP CDN优选**：
 | 二进制数据 | ArrayBuffer | ✓ |
 | `CLOSE` | ✓ | ✓ |
 | `ERROR:` | ✓ | ✓ |
-
-## 项目结构
-
-```
-ech-win7-repo/
-├── main.go                    # Go 客户端源码（v1.0 流量分流稳定版）
-├── README.md                 # 本文档
-├── go.mod                   # Go 模块依赖
-├── go.sum                   # 依赖版本锁定
-├── ech2/                     # 原始代码目录（参考）
-│   ├── 甬哥的js            # Cloudflare Worker 脚本参考
-│   ├── 甬哥的启动参数，可以关闭ECH  # 启动参数参考
-│   ├── 原版客户端go源码      # 原始客户端代码
-│   ├── 原版js              # 原版 JS 脚本参考
-│   └── g2                    # 修改建议文档
-└── .codebuddy/
-    └── plans/               # 开发计划文档（带序号）
-        ├── 01_ech2-win7-client-gen_fe599c3a.md
-        ├── 02_ech2-win7-no-ech_b352c5c8.md
-        ├── 03_tls-dns-precision-downgrade_31f6003b.md
-        ├── 04_修改_DoH_服务器为阿里_DNS_6aae21af.md
-        ├── 05_优化UDP_DNS代理连接池_53174eda.md
-        └── 06_go-client-dns-intercept-plan_fdb70445.md
-```
 
 ## 许可证
 
