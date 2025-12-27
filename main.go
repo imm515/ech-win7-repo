@@ -148,6 +148,21 @@ func queryHTTPSRecord(domain, dnsServer string) (string, error) {
 	return queryDoH(domain, dohURL)
 }
 
+func getTLSVersionString(version uint16) string {
+	switch version {
+	case tls.VersionTLS10:
+		return "TLS 1.0"
+	case tls.VersionTLS11:
+		return "TLS 1.1"
+	case tls.VersionTLS12:
+		return "TLS 1.2"
+	case tls.VersionTLS13:
+		return "TLS 1.3"
+	default:
+		return fmt.Sprintf("Unknown (0x%04x)", version)
+	}
+}
+
 // queryDoH 执行 DoH 查询（用于获取 ECH 配置）
 func queryDoH(domain, dohURL string) (string, error) {
 	u, err := url.Parse(dohURL)
@@ -416,6 +431,13 @@ func dialWebSocketWithECH(maxRetries int) (*websocket.Conn, error) {
 				continue
 			}
 			return nil, dialErr
+		}
+
+		// 检测并记录实际使用的 TLS 版本
+		if tlsConn, ok := wsConn.UnderlyingConn().(*tls.Conn); ok {
+			state := tlsConn.ConnectionState()
+			tlsVersion := getTLSVersionString(state.Version)
+			log.Printf("[代理] 主隧道连接成功, 使用协议: %s, 目标: %s", tlsVersion, wsURL)
 		}
 
 		return wsConn, nil
