@@ -54,9 +54,7 @@ func main() {
 	}
 
 	log.Printf("[启动] 正在获取 ECH 配置...")
-	if err := prepareECH(); err != nil {
-		log.Fatalf("[启动] 获取 ECH 配置失败: %v", err)
-	}
+	// prepareECH(); // 禁用 ECH 以兼容 Windows 7
 
 	runProxyServer(listenAddr)
 }
