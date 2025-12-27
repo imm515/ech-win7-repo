@@ -99,13 +99,13 @@
 
 ### 1. 准备 Cloudflare Worker
 
-将 `_worker.js` 部署到 Cloudflare Workers：
+参考 `ech2/甬哥的js` 或 `ech2/原版js`，部署到 Cloudflare Workers：
 
 ```javascript
-// 修改第 3 行的CDN优选 IP 列表
-const CF_FALLBACK_IPS = ['your-proxy-ip.com'];
+// 修改 CDN 优选 IP 列表（甬哥的js 第 1 行）
+const pyip = ['your-proxy-ip.com'];
 
-// 修改第 13 行的认证令牌（可选）
+// 修改认证令牌（甬哥的js 第 2 行）
 const token = 'your-token-here';
 ```
 
@@ -133,7 +133,7 @@ git push
 
 ### 3. 运行客户端
 
-编辑 `start.bat` 配置参数：
+参考 `ech2/甬哥的启动参数，可以关闭ECH` 创建启动脚本 `start.bat`：
 
 ```batch
 REM 本地监听地址（默认：127.0.0.1:1080）
@@ -281,11 +281,12 @@ Excel 2010 更适合使用 **HTTP CDN优选**：
 ```
 ech-win7-repo/
 ├── main.go                    # Go 客户端源码（禁用 ECH 版本）
-├── _worker.js                # Cloudflare Worker 脚本
-├── start.bat                 # Windows 启动脚本
 ├── README.md                 # 本文档
 ├── ech2/                     # 原始代码目录
-│   ├── 原版客户端go源码      # 原始客户端代码（已禁用 ECH）
+│   ├── 甬哥的js            # Cloudflare Worker 脚本参考
+│   ├── 甬哥的启动参数，可以关闭ECH  # 启动参数参考
+│   ├── 原版客户端go源码      # 原始客户端代码
+│   ├── 原版js              # 原版 JS 脚本参考
 │   └── g2                    # 修改建议文档
 └── .github/
     └── workflows/
