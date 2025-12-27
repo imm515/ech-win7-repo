@@ -348,7 +348,7 @@ ech-win7-repo/
 ### 参考与学习
 
 - **甬哥** - 取消 ECH 思路来自甬哥视频，感谢分享和提供公益服务
-  - **GitHub**: [yonggekkk/Cloudflare-vless-trojan](https://github.com/yonggekkk/Cloudflare-vless-trojan)
+  - **GitHub**: [yonggekkk](https://github.com/yonggekkk)
 - **byJoey** - [ech-](https://github.com/byJoey/ech-) - 代码学习
 
 ### 技术支持
