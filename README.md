@@ -329,5 +329,6 @@ Excel 2010 更适合使用 **HTTP CDN优选**：
 
 ### 技术支持
 
+- **CM公益服务** 
 - [gorilla/websocket](https://github.com/gorilla/websocket) - WebSocket 实现
 - Cloudflare Workers - CDN优选服务托管
