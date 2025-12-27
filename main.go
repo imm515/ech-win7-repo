@@ -118,13 +118,10 @@ func buildTLSConfigWithECH(serverName string, echList []byte) (*tls.Config, erro
 		return nil, fmt.Errorf("加载系统根证书失败: %w", err)
 	}
 	return &tls.Config{
-		MinVersion:                     tls.VersionTLS13, // 注意：TLS 1.3 可能不兼容 Windows 7
-		ServerName:                     serverName,
-		EncryptedClientHelloConfigList: echList,
-		EncryptedClientHelloRejectionVerify: func(cs tls.ConnectionState) error {
-			return errors.New("服务器拒绝 ECH")
-		},
-		RootCAs: roots,
+		MinVersion:         tls.VersionTLS13, // 注意：TLS 1.3 可能不兼容 Windows 7
+		ServerName:         serverName,
+		InsecureSkipVerify: false, // 建议保持 false 提高安全性
+		RootCAs:             roots,
 	}, nil
 }
 
