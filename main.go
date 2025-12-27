@@ -506,7 +506,6 @@ func handleUDPRelay(udpConn *net.UDPConn, clientAddr string, stopChan chan struc
 		}
 
 		atyp := data[3]
-		var headerLen int
 		var dstHost string
 		var dstPort int
 
@@ -517,7 +516,6 @@ func handleUDPRelay(udpConn *net.UDPConn, clientAddr string, stopChan chan struc
 			}
 			dstHost = net.IP(data[4:8]).String()
 			dstPort = int(data[8])<<8 | int(data[9])
-			headerLen = 10
 
 		case 0x03: // 域名
 			if n < 5 {
@@ -529,7 +527,6 @@ func handleUDPRelay(udpConn *net.UDPConn, clientAddr string, stopChan chan struc
 			}
 			dstHost = string(data[5 : 5+domainLen])
 			dstPort = int(data[5+domainLen])<<8 | int(data[6+domainLen])
-			headerLen = 7 + domainLen
 
 		case 0x04: // IPv6
 			if n < 22 {
@@ -537,7 +534,6 @@ func handleUDPRelay(udpConn *net.UDPConn, clientAddr string, stopChan chan struc
 			}
 			dstHost = net.IP(data[4:20]).String()
 			dstPort = int(data[20])<<8 | int(data[21])
-			headerLen = 22
 
 		default:
 			continue
