@@ -118,7 +118,21 @@ func buildTLSConfigWithECH(serverName string, echList []byte) (*tls.Config, erro
 		return nil, fmt.Errorf("加载系统根证书失败: %w", err)
 	}
 	return &tls.Config{
-		MinVersion:         tls.VersionTLS13, // 注意：TLS 1.3 可能不兼容 Windows 7
+		MinVersion:         tls.VersionTLS13, // 主隧道使用 TLS 1.3 高性能
+		ServerName:         serverName,
+		InsecureSkipVerify: false, // 建议保持 false 提高安全性
+		RootCAs:             roots,
+	}, nil
+}
+
+// buildTLSConfigForDNS 专门为 DNS 查询构建 TLS 1.2 配置（兼容 Windows 7）
+func buildTLSConfigForDNS(serverName string, echList []byte) (*tls.Config, error) {
+	roots, err := x509.SystemCertPool()
+	if err != nil {
+		return nil, fmt.Errorf("加载系统根证书失败: %w", err)
+	}
+	return &tls.Config{
+		MinVersion:         tls.VersionTLS12, // DNS 专用：TLS 1.2 兼容 Win7
 		ServerName:         serverName,
 		InsecureSkipVerify: false, // 建议保持 false 提高安全性
 		RootCAs:             roots,
@@ -280,7 +294,7 @@ func queryDoHForProxy(dnsQuery []byte) ([]byte, error) {
 		return nil, fmt.Errorf("获取 ECH 配置失败: %w", err)
 	}
 
-	tlsCfg, err := buildTLSConfigWithECH("dns.alidns.com", echBytes)
+	tlsCfg, err := buildTLSConfigForDNS("dns.alidns.com", echBytes)
 	if err != nil {
 		return nil, fmt.Errorf("构建 TLS 配置失败: %w", err)
 	}
