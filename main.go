@@ -265,7 +265,7 @@ func parseHTTPSRecord(data []byte) string {
 
 // ======================== DoH 代理支持 ========================
 
-// queryDoHForProxy 通过 ECH 转发 DNS 查询到 Cloudflare DoH
+// queryDoHForProxy 通过 ECH 转发 DNS 查询到阿里 DNS DoH
 func queryDoHForProxy(dnsQuery []byte) ([]byte, error) {
 	_, port, _, err := parseServerAddr(serverAddr)
 	if err != nil {
@@ -273,14 +273,14 @@ func queryDoHForProxy(dnsQuery []byte) ([]byte, error) {
 	}
 
 	// 构建 DoH URL
-	dohURL := fmt.Sprintf("https://cloudflare-dns.com:%s/dns-query", port)
+	dohURL := fmt.Sprintf("https://dns.alidns.com:%s/dns-query", port)
 
 	echBytes, err := getECHList()
 	if err != nil {
 		return nil, fmt.Errorf("获取 ECH 配置失败: %w", err)
 	}
 
-	tlsCfg, err := buildTLSConfigWithECH("cloudflare-dns.com", echBytes)
+	tlsCfg, err := buildTLSConfigWithECH("dns.alidns.com", echBytes)
 	if err != nil {
 		return nil, fmt.Errorf("构建 TLS 配置失败: %w", err)
 	}
