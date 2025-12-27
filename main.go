@@ -6,7 +6,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/base64"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -481,7 +479,7 @@ func handleUDPRelay(udpConn *net.UDPConn, clientAddr string, stopChan chan struc
 		}
 
 		udpConn.SetReadDeadline(time.Now().Add(1 * time.Second))
-		n, addr, err := udpConn.ReadFromUDP(buf)
+		n, _, err := udpConn.ReadFromUDP(buf)
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 				continue
@@ -545,7 +543,6 @@ func handleUDPRelay(udpConn *net.UDPConn, clientAddr string, stopChan chan struc
 			continue
 		}
 
-		udpData := data[headerLen:]
 		target := fmt.Sprintf("%s:%d", dstHost, dstPort)
 
 		// 检查是否是 DNS 查询（端口 53）- 拦截手机端DNS请求
