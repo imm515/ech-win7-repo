@@ -1,0 +1,25 @@
+# 编译产物
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 临时文件
+tmp/
+temp/
+
+

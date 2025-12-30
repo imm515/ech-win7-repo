@@ -1,0 +1,112 @@
+针对 Win7 64位环境，修改原版 Go 客户端以默认关闭 ECH（但保留优选 IP、Token 和甬哥 JS 适配）是一个非常实用的方案。Win7 对 TLS 1.3 的某些高级特性兼容性不佳，去掉 ECH 后，客户端将使用**标准的 TLS 1.3/1.2 握手**，这在 Win7 上运行会更加稳定。
+
+以下是详细的修改与编译指引：
+
+---
+
+### 第一步：修改源码逻辑
+
+请打开你的 `原版客户端go源码`（通常是 `main.go` 或类似命名的主文件），按照以下步骤操作：
+
+#### 1. 禁用 ECH 预初始化
+
+在 `main()` 函数中，找到调用 `prepareECH()` 的地方。这是程序启动时去阿里云 DNS 查询加密配置的代码，直接将其注释掉。
+
+**修改前：**
+
+```go
+func main() {
+    flag.Parse()
+
+    if err := prepareECH(); err != nil {
+        log.Fatalf("无法准备 ECH: %v", err)
+    }
+    // ...
+}
+
+```
+
+**修改后：**
+
+```go
+func main() {
+    flag.Parse()
+
+    // 注释掉下面这段逻辑，防止程序进行 DoH 查询
+    /*
+    if err := prepareECH(); err != nil {
+        log.Printf("跳过 ECH 准备: %v", err)
+    }
+    */
+    
+    log.Println("已禁用 ECH 模式，使用标准 TLS 连接")
+    // ...
+}
+
+```
+
+#### 2. 确保 TLS 配置不触发 ECH
+
+在源码中搜索 `tls.Config`。原版代码中有一行 `EncryptedClientHelloConfigList: echList`。
+由于我们注释了 `prepareECH()`，全局变量 `echList` 将保持为 `nil`。在 Go 的 TLS 库中，当这个参数为 `nil` 时，它会自动忽略 ECH 扩展，退回到普通握手。
+
+> **注意：** 不需要删除这一行，只要保证 `echList` 是空的即可。
+
+---
+
+### 第二步：编译环境准备（Win7 兼容性关键）
+
+为了确保编译出的 `.exe` 能在 Win7 上完美运行，建议在 **Go 1.20 或 1.21** 版本下进行编译（Go 1.21 之后官方逐渐停止对 Win7 的完美支持）。
+
+1. **检查 Go 版本：**
+打开终端输入 `go version`。
+2. **设置编译环境变量：**
+我们需要指定目标系统为 Windows 64位。在终端执行：
+```bash
+# Windows PowerShell 环境
+$env:GOOS="windows"
+$env:GOARCH="amd64"
+
+# 如果是传统 CMD 环境
+set GOOS=windows
+set GOARCH=amd64
+
+```
+
+
+
+---
+
+### 第三步：执行编译
+
+在源码所在目录下执行以下命令：
+
+```bash
+# -ldflags "-s -w" 用于减小体积并隐藏一些调试信息，增加兼容性
+go build -ldflags "-s -w" -o win7_client.exe main.go
+
+```
+
+编译完成后，你会得到一个 `win7_client.exe`。
+
+---
+
+### 第四步：搭配甬哥 JS 的运行测试
+
+在 Win7 上运行你编译的客户端时，使用以下命令启动（由于禁用了 ECH，`-dns` 和 `-ech` 参数将失效，但不需要删除）：
+
+```bash
+win7_client.exe -f 你的域名:443 -token 你的密钥 -ip 优选IP
+
+```
+
+### 修改后的逻辑优势：
+
+1. **彻底解决 Win7 的 DoH 卡顿：** 不再强制访问 `dns.alidns.com` 获取 ECH 记录。
+2. **兼容甬哥服务端：** 甬哥的 JS 能够自动识别非 ECH 的 TLS 请求，并正常升级 WebSocket。
+3. **握手更隐蔽（针对 Win7）：** 在 Win7 上，强行跑 ECH 有时会因为证书链问题被防火墙拦截，普通 TLS 握手反而更像正常的网页访问。
+
+---
+
+**下一步建议：**
+你现在可以先在源码里搜索 `func prepareECH()` 看看它所在的具体位置。如果你在编译过程中遇到类似 `undefined: ...` 的报错，可能是因为原版源码拆分成了多个 `.go` 文件，如果是这样，请告诉我，编译命令需要稍微调整为 `go build ./...`。你想先尝试寻找 `prepareECH` 的位置吗？

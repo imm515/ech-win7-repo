@@ -1,0 +1,114 @@
+@echo off
+:: 强制使用 936 代码页防止乱码
+chcp 936 >nul
+setlocal enabledelayedexpansion
+
+:: ================= 用户配置区 =================
+set exe_name=proxy-win7-x64.exe
+set listen_addr=127.0.0.1:30000
+set token=*
+set cf_domain=*:443
+
+set ip1=*
+set ip2=*
+set ip3=*
+:: ==============================================
+
+cls
+echo ========================================
+echo         CDN优选管理脚本 (Win7 x64)
+echo ========================================
+
+:: --- 1. 检测运行状态并处理切换/停止 ---
+tasklist /nh /fi "imagename eq %exe_name%" | find /i "%exe_name%" >nul
+if %errorlevel% == 0 (
+    echo.
+    echo [状态] 检测到CDN优选正在运行。
+    echo.
+    echo ------------------------------------------------
+    echo  [ 1 / 2 / 3 ] 切换 IP 并重启CDN优选
+    echo  [ 任意其它键 ] 保持当前状态并退出
+    echo  [ 无操作 6s ] 自动 [关闭] CDN优选并退出
+    echo ------------------------------------------------
+    echo  1. %ip1%
+    echo  2. %ip2%
+    echo  3. %ip3%
+    echo.
+
+    rem Q 为默认超时选项(关闭)，123位切换选项，其余字母为保持
+    choice /c 123Q4567890ABCDEFGHIJKLMNOPRSTUVWXYZ /n /t 6 /d Q /m "请选择操作："
+    set res=!errorlevel!
+
+    if !res! LEQ 3 (
+        echo.
+        echo [动作] 正在切换 IP，准备重启...
+        taskkill /f /im %exe_name% >nul
+        
+        if !res! == 1 set cf_cdnip=%ip1%
+        if !res! == 2 set cf_cdnip=%ip2%
+        if !res! == 3 set cf_cdnip=%ip3%
+        
+        goto :START_PROXY
+    )
+
+    if !res! == 4 (
+        echo.
+        echo [状态] 时间到，正在关闭CDN优选进程...
+        taskkill /f /im %exe_name% >nul
+        echo [结果] CDN优选已停止。
+        ping 127.0.0.1 -n 3 >nul
+        exit
+    ) else (
+        echo.
+        echo [已取消] 保持当前CDN优选运行，脚本退出。
+        ping 127.0.0.1 -n 3 >nul
+        exit
+    )
+)
+
+:: --- 2. 初始启动逻辑 ---
+echo [状态] CDN优选未运行，准备启动...
+echo.
+echo ----------------------------------------
+echo    请选择 Cloudflare CDN IP (6 秒内)
+echo ----------------------------------------
+echo    1. %ip1%  [默认]
+echo    2. %ip2%
+echo    3. %ip3%
+echo.
+choice /c 123 /n /t 6 /d 1 /m "请输入序号："
+
+if errorlevel 3 (set cf_cdnip=%ip3%) else (
+    if errorlevel 2 (set cf_cdnip=%ip2%) else (
+        set cf_cdnip=%ip1%
+    )
+)
+
+:START_PROXY
+echo.
+echo [已选择] CDN IP：%cf_cdnip%
+ping 127.0.0.1 -n 2 >nul
+
+:: --- 3. 准备静默启动 ---
+echo.
+echo [状态] 正在启动后台CDN优选...
+
+:: 注意：Win7 下 cmd /c 后面的命令如果包含多个参数，建议整体处理
+set "run_cmd=%exe_name% -l %listen_addr% -f %cf_domain% -token %token% -ip %cf_cdnip%"
+
+echo Set ws = CreateObject("Wscript.Shell") > "%temp%\run_proxy.vbs"
+:: 0 代表隐藏窗口
+echo ws.Run "cmd /c !run_cmd! >nul 2>&1", 0 >> "%temp%\run_proxy.vbs"
+
+wscript "%temp%\run_proxy.vbs"
+del "%temp%\run_proxy.vbs"
+
+echo.
+echo [结果] 成功！CDN优选已在后台运行。
+echo ----------------------------------------
+echo    提示：再次运行此脚本可 [切换IP] 或 [关闭]。
+echo ----------------------------------------
+echo.
+echo 窗口将在 3 秒后自动关闭...
+ping 127.0.0.1 -n 4 >nul
+exit
