@@ -1,4 +1,4 @@
-name: Auto Build Win7 x64 & Sync Deps
+name: Auto Build Win7 x64/x86 & Sync Deps
 
 on:
   push:
@@ -45,11 +45,25 @@ jobs:
           # -ldflags "-s -w" 压缩体积并隐藏调试符号
           go build -trimpath -ldflags="-s -w" -o proxy-win7-x64.exe .
 
+      - name: Build Windows 7 x86 EXE
+        env:
+          GOOS: windows
+          GOARCH: 386
+          CGO_ENABLED: 0
+        run: |
+          # -trimpath 移除编译机路径信息
+          # -ldflags "-s -w" 压缩体积并隐藏调试符号
+          go build -trimpath -ldflags="-s -w" -o proxy-win7-x86.exe .
+
       - name: Display Build Info
         run: |
           echo "=== Build Information ==="
+          echo "x64 Build:"
           ls -lh proxy-win7-x64.exe
-          file proxy-win7-x64.exe || echo "File command not available"
+          echo ""
+          echo "x86 Build:"
+          ls -lh proxy-win7-x86.exe
+          file proxy-win7-*.exe || echo "File command not available"
           if command -v upx &> /dev/null; then
             echo "UPX available for further compression"
           fi
@@ -71,15 +85,19 @@ jobs:
       - name: Upload EXE Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: proxy-win7-x64
-          path: proxy-win7-x64.exe
+          name: proxy-win7-binaries
+          path: |
+            proxy-win7-x64.exe
+            proxy-win7-x86.exe
           retention-days: 90  # 保留 90 天
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: proxy-win7-x64.exe
+          files: |
+            proxy-win7-x64.exe
+            proxy-win7-x86.exe
           generate_release_notes: true
           draft: false
           prerelease: false
@@ -90,6 +108,9 @@ jobs:
         run: |
           echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "- **Go Version**: 1.20.14" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target OS/Arch**: Windows/amd64" >> $GITHUB_STEP_SUMMARY
-          echo "- **Output File**: \`proxy-win7-x64.exe\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target OS**: Windows" >> $GITHUB_STEP_SUMMARY
+          echo "- **Archs**: amd64 (x64), 386 (x86)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Output Files**:" >> $GITHUB_STEP_SUMMARY
+          echo "  - \`proxy-win7-x64.exe\` (64-bit)" >> $GITHUB_STEP_SUMMARY
+          echo "  - \`proxy-win7-x86.exe\` (32-bit)" >> $GITHUB_STEP_SUMMARY
           echo "- **TLS Version**: 1.2 (Win7 Compatible)" >> $GITHUB_STEP_SUMMARY
